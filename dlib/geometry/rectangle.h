@@ -13,6 +13,7 @@
 #include "math.h"
 
 //james add function
+#ifdef ANDROID
 namespace std
 {
     double round(double r)
@@ -20,6 +21,7 @@ namespace std
         return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
     }
 }
+#endif
 //
 namespace dlib
 {
