@@ -9,7 +9,9 @@
 #include "../array.h"
 #include "../array2d.h"
 #include "object_detector.h"
-
+#if (defined __ANDROID__) &&(defined USE_OMP)
+#include <omp.h>
+#endif
 namespace dlib
 {
 
@@ -588,7 +590,74 @@ namespace dlib
                 feats.set_max_size(levels);
             feats.set_size(levels);
 
-
+            
+#if (defined __ANDROID__) &&(defined USE_OMP)
+            typedef typename image_traits<image_type>::pixel_type pixel_type;
+            array<array2d<pixel_type>> tvec;
+            array2d<pixel_type> temp1, temp2;
+            pyr(img, temp1);
+            tvec.resize(feats.size());
+            
+#ifdef SHOW_OPEN_MP_TIME
+            // image_type temp1, temp2;
+            struct timeval beg,end;
+            gettimeofday(&beg, NULL);
+#endif
+            for(int i=0;i<feats.size();i++)
+            {
+                if(i==0)
+                {
+                    pyr(img,tvec[i]);
+                }
+                else
+                {
+                    pyr(tvec[i-1], tvec[i]);
+                }
+            }
+#ifdef SHOW_OPEN_MP_TIME
+            gettimeofday(&end,NULL);
+            int sec=(end.tv_sec-beg.tv_sec)*1000+(end.tv_usec-beg.tv_usec)/1000;
+            std::cout<<"create pyr :"<<"\tsec="<<sec<<std::endl;
+            struct timeval beg1,end1;
+            gettimeofday(&beg1, NULL);
+#endif
+            
+#if (defined __ANDROID__) &&(defined USE_OMP)
+#pragma omp parallel for
+#endif
+            
+            for(int i=0;i<feats.size();i++)
+            {
+                #ifdef SHOW_OPEN_MP_TIME
+                struct timeval beg,end;
+                gettimeofday(&beg, NULL);
+#endif
+                if(i==0)
+                {
+                    fe(img, feats[0], cell_size,filter_rows_padding,filter_cols_padding);
+                    // printf("i=%d,row size=%ld,%ld\n",i,img.nc(),img.nr());
+                    
+                }
+                
+                else
+                    
+                {
+                    fe(tvec[i-1], feats[i], cell_size,filter_rows_padding,filter_cols_padding);
+                    // printf("i=%d,row size=%ld,%ld\n",i,tvec[i-1].nc(),tvec[i-1].nr());
+                    
+                }
+#ifdef SHOW_OPEN_MP_TIME
+                gettimeofday(&end,NULL);
+                int sec=(end.tv_sec-beg.tv_sec)*1000+(end.tv_usec-beg.tv_usec)/1000;
+                std::cout<<"detector :"<<i<<"\tsec="<<sec<<" tsize"<<feats.size()<<std::endl;
+#endif
+            }
+#ifdef SHOW_OPEN_MP_TIME
+            gettimeofday(&end1,NULL);
+            sec=(end1.tv_sec-beg1.tv_sec)*1000+(end1.tv_usec-beg1.tv_usec)/1000;
+            std::cout<<"all detector :"<<"\tsec="<<sec<<" tsize"<<feats.size()<<std::endl;
+#endif
+#else
 
             // build our feature pyramid
             fe(img, feats[0], cell_size,filter_rows_padding,filter_cols_padding);
@@ -611,6 +680,7 @@ namespace dlib
                     swap(temp1,temp2);
                 }
             }
+#endif
         }
     }
 

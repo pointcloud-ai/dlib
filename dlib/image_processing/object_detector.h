@@ -8,7 +8,11 @@
 #include <vector>
 #include "box_overlap_testing.h"
 #include "full_object_detection.h"
-
+#if (defined __ANDROID__) && (defined USE_OMP)
+#include <omp.h>
+#endif
+#include <unistd.h>
+#include <sys/time.h>
 namespace dlib
 {
 
@@ -431,12 +435,20 @@ namespace dlib
     ) 
     {
         scanner.load(img);
-        std::vector<std::pair<double, rectangle> > dets;
+       
         std::vector<rect_detection> dets_accum;
+        //add by xiqi for openmp for android
+#if (defined __ANDROID__) &&(defined USE_OMP)
+#pragma omp parallel for ordered schedule(dynamic)
+#endif
         for (unsigned long i = 0; i < w.size(); ++i)
         {
+            std::vector<std::pair<double, rectangle> > dets;
             const double thresh = w[i].w(scanner.get_num_dimensions());
             scanner.detect(w[i].get_detect_argument(), dets, thresh + adjust_threshold);
+#if (defined __ANDROID__) &&(defined USE_OMP)
+#pragma omp ordered
+#endif
             for (unsigned long j = 0; j < dets.size(); ++j)
             {
                 rect_detection temp;

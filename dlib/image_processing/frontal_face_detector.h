@@ -12,7 +12,11 @@
 
 namespace dlib
 {
-    typedef object_detector<scan_fhog_pyramid<pyramid_down<6> > > frontal_face_detector;
+#if defined __ANDROID__
+        typedef object_detector<scan_fhog_pyramid<pyramid_down<4> > > frontal_face_detector;
+#else
+         typedef object_detector<scan_fhog_pyramid<pyramid_down<6> > > frontal_face_detector;
+#endif
     inline const std::string get_serialized_frontal_faces();
 
     inline frontal_face_detector get_frontal_face_detector()
