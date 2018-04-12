@@ -31,6 +31,7 @@ SET(lapack_without_underscore 0)
 
 message(STATUS "Searching for BLAS and LAPACK")
 
+      message("open blas home" $ENV{OPENBLAS_HOME}/lib)
 if (UNIX OR MINGW)
    message(STATUS "Searching for BLAS and LAPACK")
 
@@ -167,10 +168,23 @@ if (UNIX OR MINGW)
       )
 
    INCLUDE (CheckFunctionExists)
-
    if (NOT blas_found)
-      find_library(cblas_lib openblas PATHS ${extra_paths})
-      if (cblas_lib)
+  SET(CMAKE_FIND_ROOT_PATH "${OPENBLAS_HOME}/lib")
+   SET(CMAKE_FIND_ROOT_PATH "${PROJECT_SOURCE_DIR}/thirdparty/android/lib/cmake/openblas")
+   find_package(OpenBLAS REQUIRED PATHS ${PROJECT_SOURCE_DIR}/thirdparty/android/protobuf/lib/cmake/)
+   message(${OpenBLAS_LIBRARIES})
+    if(${OpenBLAS_FOUND})
+
+         set(blas_libraries ${OpenBLAS_LIBRARIES})
+         set(blas_found 1)
+         set(CMAKE_REQUIRED_LIBRARIES ${blas_libraries})
+    else()
+
+      find_library(tlib 
+                   names openblas
+                   PATHS $ENV{OPENBLAS_HOME}/lib
+                   HINTS $ENV{OPENBLAS_HOME}/lib)
+      if (tlib)
          set(blas_libraries ${cblas_lib})
          set(blas_found 1)
          message(STATUS "Found OpenBLAS library")
@@ -184,10 +198,12 @@ if (UNIX OR MINGW)
             # set(lapack_libraries gfortran) 
             set(lapack_found 1)
          endif()
+      else()
+	message(STATUS "not find")
       endif()
       mark_as_advanced( cblas_lib)
    endif()
-
+ endif()
 
    if (NOT lapack_found)
       find_library(lapack_lib NAMES lapack lapack-3 PATHS ${extra_paths})
